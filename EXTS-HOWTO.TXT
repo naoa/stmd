@@ -1,0 +1,53 @@
+How to customize exts (external stemmer)
+
+1. Write a stemmer that reads from stdin and writes out to stdout.
+Text should encoded UTF-8.
+A three character sequence: "\newline SEPARATOR_C \newline" is a
+message boundary, and your stemmer should recognize this sequence.
+The stemmer should write out a line that begins with a SEPARATOR_C,
+whenever it encounters a message boundary(*). Do not forget to flush
+output buffer after writing out a message boundary.
+SEPARATOR_C is defined in extsutil.c (default: 037) and you may choose 
+any single byte, but avoid characters grater than 0x7f which break
+UTF-8 well-formedness.
+
+(*) If you want to change this behavior, find following line in extutil.c
+		if (*c->rcvbuf == SEPARATOR_C) {
+ then modify this line.  e.g. if your stemmer writes "--\n" as a message 
+ boundary, the following code will suffice:
+		if (strcmp(c->rcvbuf, "--\n") == 0) { 
+
+
+2. Modify extsutil.c to call your stemmer.
+A macro EXTS_CMD specifies external stemmer's absolute path.
+Modify EXTS_CMD to point your stemmer. (relative path may not be allowed.)
+exts_default_argv is command line arguments to your stemmer.
+The first argument should a path to the command itself,
+and the list should ended with a `NULL'. See the following example.
+
+example:
+#define	EXTS_CMD STMD_MYSTEMMER_DIR "stmd-exts.sh"
+static char *exts_default_argv[] = {EXTS_CMD, "-b", "65536", NULL};
+#define	SEPARATOR_C 037
+
+If commas (,) appear in a stemmer name that passed to ystem,
+the name is split up into fragments by comma.
+Then the first fragment becomes the true name (of course, it must be "exts").
+The rests become arguments to EXTS_CMD which overrides exts_default_arg.
+e.g. if you want change buffer size, use "exts,-b,8192" as a stemmer name.
+You cannot override EXTS_CMD.
+
+
+3. Write a post-processing filter for your stemmer
+Modify a function exts_linefil defined in extsutil.c.
+In exts_linefil, q->surface holds a line received from your stemmer.
+Modify this function to return a word what you want.
+You may destroy the contents of q->surface.
+q->surface will be destroyed upon next call to exts_sparse_tostr.
+If you want to discard current line, return a NULL.
+
+
+4. Test your stemmer with extsdbg.
+extsdbg provides a simple debugging program for your new stemmer.
+extsdbg simulates stmd's behavior, so that you can check what is
+going to happen between stmd and your stemmer, interactively.

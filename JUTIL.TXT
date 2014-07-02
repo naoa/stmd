@@ -1,0 +1,198 @@
+★ 技術資料
+
+stmd は GETAssoc がインデクス語をユーザに提示することを想定し,
+(主に見栄え良くするために)
+かなり厳しめのフィルタを適用している.
+
+たとえば, mecabutil.c では品詞が
+ 名詞, 動詞, 形容詞, 記号, 連体詞, 未知語
+でない語を捨てる. (これは良くある設定である.)
+それに加えて, jutil.c:isasoundword()
+によるテストを通らない語も捨てられる.
+isasoundword はかなり厳しいテストであり,
+たとえば ``うつ'' などが落ちてしまう.
+この動作が不都合な応用において(この動作を)無効するには,
+1. mecabutil.c / chasenutil.c を修正する.
+2. jutil.c を修正する.
+3. (このテストが適用されるのは組み込みの ChaSen と Mecab だけであるから)
+   exts を用いる
+などの方法がある.
+
+isasoundword の仕様は以下の通り:
+
+単語の健全性テスト
+有効文字(VALID): この文字を1文字も含まない単語は健全ではない --- a
+		 (健全な単語はこの文字を少なくとも 1 文字含む)
+不正文字(INVAL): この文字を1文字でも含む単語は健全ではない --- b
+		 (有効でも許容でもない文字)
+許容文字(ALLOW): 有っても無くても判定に影響しない
+ただし, Hiragana のみからなる1-2文字の単語は健全ではない --- c
+語頭禁止文字(Extender): 以下の 6 文字は単語の先頭に現れてはならない --- d
+ #x3005 | -- 々
+ [#x309D-#x309E] | -- ゝゞ
+ [#x30FC-#x30FE] -- ーヽヾ
+中黒(#x30FB)1文字からなる語は健全ではない --- e
+
+a, b, c, d, e どのテストも偽である単語は健全
+
+1 byte 文字 (ASCII/Basic Latin)
+	有効文字(62): a b c d e f g h i j k l m n o p q r s t u v w x y z
+		      A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+		      0 1 2 3 4 5 6 7 8 9
+	許容文字(15): ! # $ % & ' + , - . / : ? @ _
+	不正文字(51): \000-\037 sp " ( ) * ; < = > [ \ ] ^ ` { | } ~ del
+	(合計 128 文字)
+
+多 byte 文字
+	有効文字: Latin, Hiragana, Katakana, Greek, Cyrillic, CJK Ideographs, 々
+	不正文字: 上記以外の文字
+
+有効文字の UCS でのコード
+
+0x0000 - 0x0080, Basic Latin
+
+ [#x0030-#x0039] -- 0123456789
+ [#x0041-#x005A] -- ABCDEFGHIJKLMNOPQRSTUVWXYZ
+ [#x0061-#x007A] -- abcdefghijklmnopqrstuvwxyz
+
+0x0080 - 0x0100, Latin-1 Supplement
+
+ [#x00C0-#x00D6] -- ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ
+ [#x00D8-#x00F6] -- ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö
+ [#x00F8-#x00FF] -- øùúûüýþÿ
+
+0x0100 - 0x0180, Latin Extended-A
+
+ [#x0100-#x0131] -- ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİı
+ [#x0134-#x013E] -- ĴĵĶķĸĹĺĻļĽľ
+ [#x0141-#x0148] -- ŁłŃńŅņŇň
+ [#x014A-#x017E] -- ŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž
+
+0x0180 - 0x0250, Latin Extended-B
+
+ [#x0180-#x01C3] -- ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏƐƑƒƓƔƕƖƗƘƙƚƛƜƝƞƟƠơƢƣƤƥƦƧƨƩƪƫƬƭƮƯưƱƲƳƴƵƶƷƸƹƺƻƼƽƾƿǀǁǂǃ
+ [#x01CD-#x01F0] -- ǍǎǏǐǑǒǓǔǕǖǗǘǙǚǛǜǝǞǟǠǡǢǣǤǥǦǧǨǩǪǫǬǭǮǯǰ
+ [#x01F4-#x01F5] -- Ǵǵ
+ [#x01FA-#x0217] -- ǺǻǼǽǾǿȀȁȂȃȄȅȆȇȈȉȊȋȌȍȎȏȐȑȒȓȔȕȖȗ
+
+0x0250 - 0x02B0, IPA Extensions
+ [#x0250-#x02A8] -- ɐɑɒɓɔɕɖɗɘəɚɛɜɝɞɟɠɡɢɣɤɥɦɧɨɩɪɫɬɭɮɯɰɱɲɳɴɵɶɷɸɹɺɻɼɽɾɿʀʁʂʃʄʅʆʇʈʉʊʋʌʍʎʏʐʑʒʓʔʕʖʗʘʙʚʛʜʝʞʟʠʡʢʣʤʥʦʧʨ
+
+0x02B0 - 0x0300, Spacing Modifier Letters
+ [#x02BB-#x02C1] -- ʻʼʽʾʿˀˁ
+
+0x0370 - 0x0400, Greek
+
+ #x0386 -- Ά
+ [#x0388-#x038A] -- ΈΉΊ
+ #x038C -- Ό
+ [#x038E-#x03A1] -- ΎΏΐΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡ
+ [#x03A3-#x03CE] -- ΣΤΥΦΧΨΩΪΫάέήίΰαβγδεζηθικλμνξοπρςστυφχψωϊϋόύώ
+ [#x03D0-#x03D6] -- ϐϑϒϓϔϕϖ
+ #x03DA -- Ϛ
+ #x03DC -- Ϝ
+ #x03DE -- Ϟ
+ #x03E0 -- Ϡ
+ [#x03E2-#x03F3] -- ϢϣϤϥϦϧϨϩϪϫϬϭϮϯϰϱϲϳ
+
+0x0400 - 0x0500, Cyrillic
+ [#x0401-#x040C] -- ЁЂЃЄЅІЇЈЉЊЋЌ
+ [#x040E-#x044F] -- ЎЏАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя
+ [#x0451-#x045C] -- ёђѓєѕіїјљњћќ
+ [#x045E-#x0481] -- ўџѠѡѢѣѤѥѦѧѨѩѪѫѬѭѮѯѰѱѲѳѴѵѶѷѸѹѺѻѼѽѾѿҀҁ
+ [#x0490-#x04C4] -- ҐґҒғҔҕҖҗҘҙҚқҜҝҞҟҠҡҢңҤҥҦҧҨҩҪҫҬҭҮүҰұҲҳҴҵҶҷҸҹҺһҼҽҾҿӀӁӂӃӄ
+ [#x04C7-#x04C8] -- Ӈӈ
+ [#x04CB-#x04CC] -- Ӌӌ
+ [#x04D0-#x04EB] -- ӐӑӒӓӔӕӖӗӘәӚӛӜӝӞӟӠӡӢӣӤӥӦӧӨөӪӫ
+ [#x04EE-#x04F5] -- ӮӯӰӱӲӳӴӵ
+ [#x04F8-#x04F9] -- Ӹӹ
+
+0x0500 - 0x0530, Cyrillic Supplement
+
+0x1E00 - 0x1F00, Latin Extended Additional
+ [#x1E00-#x1E9B] -- ḀḁḂḃḄḅḆḇḈḉḊḋḌḍḎḏḐḑḒḓḔḕḖḗḘḙḚḛḜḝḞḟḠḡḢḣḤḥḦḧḨḩḪḫḬḭḮḯḰḱḲḳḴḵḶḷḸḹḺḻḼḽḾḿṀṁṂṃṄṅṆṇṈṉṊṋṌṍṎṏṐṑṒṓṔṕṖṗṘṙṚṛṜṝṞṟṠṡṢṣṤṥṦṧṨṩṪṫṬṭṮṯṰṱṲṳṴṵṶṷṸṹṺṻṼṽṾṿẀẁẂẃẄẅẆẇẈẉẊẋẌẍẎẏẐẑẒẓẔẕẖẗẘẙẚẛ
+ [#x1EA0-#x1EF9] -- ẠạẢảẤấẦầẨẩẪẫẬậẮắẰằẲẳẴẵẶặẸẹẺẻẼẽẾếỀềỂểỄễỆệỈỉỊịỌọỎỏỐốỒồỔổỖỗỘộỚớỜờỞởỠỡỢợỤụỦủỨứỪừỬửỮữỰựỲỳỴỵỶỷỸỹ
+
+0x1F00 - 0x2000, Greek Extended
+
+ [#x1F00-#x1F15] -- ἀἁἂἃἄἅἆἇἈἉἊἋἌἍἎἏἐἑἒἓἔἕ
+ [#x1F18-#x1F1D] -- ἘἙἚἛἜἝ
+ [#x1F20-#x1F45] -- ἠἡἢἣἤἥἦἧἨἩἪἫἬἭἮἯἰἱἲἳἴἵἶἷἸἹἺἻἼἽἾἿὀὁὂὃὄὅ
+ [#x1F48-#x1F4D] -- ὈὉὊὋὌὍ
+ [#x1F50-#x1F57] -- ὐὑὒὓὔὕὖὗ
+ #x1F59 -- Ὑ
+ #x1F5B -- Ὓ
+ #x1F5D -- Ὕ
+ [#x1F5F-#x1F7D] -- ὟὠὡὢὣὤὥὦὧὨὩὪὫὬὭὮὯὰάὲέὴήὶίὸόὺύὼώ
+ [#x1F80-#x1FB4] -- ᾀᾁᾂᾃᾄᾅᾆᾇᾈᾉᾊᾋᾌᾍᾎᾏᾐᾑᾒᾓᾔᾕᾖᾗᾘᾙᾚᾛᾜᾝᾞᾟᾠᾡᾢᾣᾤᾥᾦᾧᾨᾩᾪᾫᾬᾭᾮᾯᾰᾱᾲᾳᾴ
+ [#x1FB6-#x1FBC] -- ᾶᾷᾸᾹᾺΆᾼ
+ #x1FBE -- ι
+ [#x1FC2-#x1FC4] -- ῂῃῄ
+ [#x1FC6-#x1FCC] -- ῆῇῈΈῊΉῌ
+ [#x1FD0-#x1FD3] -- ῐῑῒΐ
+ [#x1FD6-#x1FDB] -- ῖῗῘῙῚΊ
+ [#x1FE0-#x1FEC] -- ῠῡῢΰῤῥῦῧῨῩῪΎῬ
+ [#x1FF2-#x1FF4] -- ῲῳῴ
+ [#x1FF6-#x1FFC] -- ῶῷῸΌῺΏῼ
+
+0x2100 - 0x2150, Letterlike Symbols
+ #x2126 | -- Ω
+ [#x212A-#x212B] | -- KÅ
+ #x212E | -- ℮
+
+(0x3000 - 0x3040 CJK Symbols and Punctuation)
+0x3005           々
+ #x3005 | -- 々
+
+0x3040 - 0x30A0, Hiragana
+ [#x3041-#x3094] | -- ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろゎわゐゑをんゔ
+ [#x309D-#x309E] | -- ゝゞ
+
+0x30A0 - 0x3100, Katakana
+
+ [#x30A1-#x30FA] -- ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロヮワヰヱヲンヴヵヶヷヸヹヺ
+ [#x30FC-#x30FE] -- ーヽヾ
+
+0x31F0 - 0x3200, Katakana Phonetic Extensions
+
+0x3400 - 0x4DC0, CJK Unified Ideographs Extension A
+
+0x4E00 - 0xA000, CJK Unified Ideographs
+ [#x4E00-#x9FA5] | 
+ #x3007 | -- 〇
+
+0xF900 - 0xFB00, CJK Compatibility Ideographs
+
+00-7f の表
+/*  00 nul   01 soh   02 stx   03 etx   04 eot   05 enq   06 ack   07 bel */
+    INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL, 
+/*  08 bs    09 ht    0a nl    0b vt    0c np    0d cr    0e so    0f si  */
+    INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL, 
+/*  10 dle   11 dc1   12 dc2   13 dc3   14 dc4   15 nak   16 syn   17 etb */
+    INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL, 
+/*  18 can   19 em    1a sub   1b esc   1c fs    1d gs    1e rs    1f us  */
+    INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL, 
+/*  20 sp    21  !    22  "    23  #    24  $    25  %    26  &    27  ’  */
+    INVAL,   ALLOW,   INVAL,   ALLOW,   ALLOW,   ALLOW,   ALLOW,   ALLOW, 
+/*  28  (    29  )    2a  *    2b  +    2c  ,    2d  -    2e  .    2f  /  */
+    INVAL,   INVAL,   INVAL,   ALLOW,   ALLOW,   ALLOW,   ALLOW,   ALLOW, 
+/*  30  0    31  1    32  2    33  3    34  4    35  5    36  6    37  7  */
+    VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID, 
+/*  38  8    39  9    3a  :    3b  ;    3c  <    3d  =    3e  >    3f  ?  */
+    VALID,   VALID,   ALLOW,   INVAL,   INVAL,   INVAL,   INVAL,   ALLOW, 
+/*  40  @    41  A    42  B    43  C    44  D    45  E    46  F    47  G  */
+    ALLOW,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID, 
+/*  48  H    49  I    4a  J    4b  K    4c  L    4d  M    4e  N    4f  O  */
+    VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID, 
+/*  50  P    51  Q    52  R    53  S    54  T    55  U    56  V    57  W  */
+    VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID, 
+/*  58  X    59  Y    5a  Z    5b  [    5c  \    5d  ]    5e  ^    5f  _  */
+    VALID,   VALID,   VALID,   INVAL,   INVAL,   INVAL,   INVAL,   ALLOW, 
+/*  60  `    61  a    62  b    63  c    64  d    65  e    66  f    67  g  */
+    INVAL,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID, 
+/*  68  h    69  i    6a  j    6b  k    6c  l    6d  m    6e  n    6f  o  */
+    VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID, 
+/*  70  p    71  q    72  r    73  s    74  t    75  u    76  v    77  w  */
+    VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID,   VALID, 
+/*  78  x    79  y    7a  z    7b  {    7c  |    7d  }    7e  ~    7f del */
+    VALID,   VALID,   VALID,   INVAL,   INVAL,   INVAL,   INVAL,   INVAL, 

@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# $Id: stmd.in,v 1.1 2010/12/08 07:47:54 nis Exp $
+#
+# PROVIDE: stmd
+# REQUIRE: DAEMON
+# KEYWORD: shutdown
+#
+# You will need to set some variables in /etc/rc.conf to start Stmd:
+#
+# stmd=YES
+
+$_rc_subr_loaded . /etc/rc.subr
+
+name="stmd"
+rcvar=$name
+start_cmd="stmd_start"
+
+stmd_start()
+{
+	if [ -r @prefix@/bin/stmd ]; then
+		@prefix@/bin/stmd -e stmd -d -u /tmp/stmd.sock
+	fi
+}
+
+load_rc_config $name
+run_rc_command "$1"

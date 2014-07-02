@@ -1,0 +1,109 @@
+0. Prerequisites
+
+	eXpat 2.0.0					-- mandatory
+		[http://expat.sourceforge.net/]
+
+	ICU 3.6						-- mandatory
+		[http://www.icu-project.org/download/3.6.html]
+
+	MeCab						-- for Japanese
+		(mecab-0.97, mecab-ipadic-2.7.0-20070801)
+		Installed MeCab must be UTF8 ready.
+		[http://mecab.sourceforge.net/]
+
+	ChaSen 						-- for Japanese
+		[http://chasen.naist.jp/hiki/ChaSen/]
+		(chasen-2.3.3 darts-0.2 ipadic-2.7.0)	-- good
+		(chasen-2.4.2 darts-0.31 ipadic-2.7.0)	-- avoid
+		IMPORTANT: ChaSen must be UTF8 ready.
+		refer to [http://chasen.aist-nara.ac.jp/hiki/ChaSen/?FAQ].
+
+	Snowball					-- for English
+		[http://snowball.tartarus.org/]
+
+
+1. Configure options
+
+The following options are avilable:
+
+	--prefix=/usr/local
+
+	* choose one:			-- mandatory
+	--with-defaultstemmer=NGRAM
+		or
+	--with-defaultstemmer=MECAB
+		or
+	--with-defaultstemmer=CHASEN
+		or
+	--with-defaultstemmer=EXTS
+		or
+	--with-defaultstemmer=SNOWBALL
+
+	--enable-kill3number=yes	-- recommended in most case
+
+	--with-mecab-kihon-index=12 		-- pass this flag, if you are going to use unidic-1.3.12 + mecab combination
+	--with-mecab-kihon-index=9 		-- pass this flag, if you are going to use unidic-1.3.11 + mecab combination
+
+	--with-icu-config=/usr/local/bin/icu-config
+
+	--enable-mecab=yes
+	--with-mecab-config=/usr/local/bin/mecab-config
+
+	--enable-chasen=yes
+	--with-chasen-config=/usr/local/bin/chasen-config
+
+	--enable-exts=yes
+
+	--enable-snowball=yes
+	--with-snowballdir=/usr/local
+
+As both GETAssoc and itb2frq use `defaultstemmer'
+(hardwired: see GETAssoc's source code),
+so choose `--with-defaultstemmer=' carefully.
+
+Passed a kill3number flag, stmd discards arabic-number which length is less than four digits.
+
+
+3. build & install
+
+	make && make install
+
+
+4. [OPTIONAL]  test your build
+
+	(cd t && ./chk tst1.xml)
+	(cd t && ./chk tst2.xml)
+	(cd t && ./chk tst3.xml)
+	(cd t && ./chk tst4.xml)
+	(cd t && ./chk tst5.xml)
+	(cd t && ./chk tst6.xml)
+	(cd t && ./chk tst7.xml)
+
+
+5. Add the following line to `syslog.conf'.  
+local0.debug                                    /var/log/stmd
+
+
+6. Add the following line to `services'.  Choose your favorite number.
+   This example uses 1234.
+stmd		1234/tcp		# stmd
+
+
+7. Add following line to `inetd.conf' and restart inetd
+FreeBSD, Solaris:
+stmd		stream	tcp	nowait	somebody	/usr/local/bin/in.stmd in.stmd
+NetBSD:
+stmd		stream	tcp	nowait:256	somebody	/usr/local/bin/in.stmd in.stmd
+
+
+8. Start a daemon (for GETAssoc)
+/usr/local/bin/stmd -d -u /tmp/stmd.sock
+kill -HUP `cat /var/run/inetd.pid`
+
+NOTE: GETAssoc tries /tmp/stmd.sock first, then localhost.stmd/tcp.
+So in.stmd (inetd) will be a backup server, in case that standalone stmd
+crashes or is absent.
+
+9. [NetBSD pkgsrc]
+cp rc.d/stmd /etc/rc.d/stmd
+echo stmd=YES >>/etc/rc.conf

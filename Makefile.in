@@ -1,0 +1,157 @@
+#	$Id: Makefile.in,v 1.54 2011/10/25 02:18:54 nis Exp $
+
+#
+# Copyright (c) 2006 Shingo Nishioka.
+# All rights reserved.
+#
+
+@SET_MAKE@
+
+SHELL=@SHELL@
+CC=@CC@
+CXX=@CXX@
+CFLAGS+=-I.
+CFLAGS+=@CFLAGS@
+#CFLAGS+=-ansi -pedantic
+CFLAGS+=-Wall -Wno-parentheses -Wdeclaration-after-statement -g -O
+LDFLAGS=@LDFLAGS@
+INSTALL=@INSTALL@
+LIBS=@LIBS@
+RANLIB=@RANLIB@
+LIBTOOL=@LIBTOOL@
+AR=ar
+
+prefix=@prefix@
+includedir=@includedir@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+bindir=@bindir@
+top_builddir=@top_builddir@
+libexecdir=@libexecdir@
+
+RCDDIR=@prefix@/share/examples/rc.d
+
+LINK=$(LIBTOOL) --mode=link $(CXX) $(CFLAGS) $(LDFLAGS)
+
+include config.mk
+
+@IFNEMPTY@ANSI_SOURCE@EFI@
+CFLAGS+=-D_BSD_SOURCE
+CFLAGS+=-D_POSIX_C_SOURCE=200112L
+CFLAGS+=-D_XOPEN_SOURCE=600
+CFLAGS+=-D_XOPEN_SOURCE_EXTENDED=1
+@ENDIF@
+
+#CFLAGS+=-DDBG=1
+
+CFLAGS+='-DDEFAULT_STEMMER=@DEFAULTSTEMMER@'
+
+CFLAGS+='-DSTMD_MYSTEMMER_DIR="$(bindir)"'
+
+CFLAGS+=@EVAL_BEGIN@@ICUCONFIG@ --cflags@EVAL_END@
+CFLAGS+=@EVAL_BEGIN@@ICUCONFIG@ --cppflags@EVAL_END@
+
+LDFLAGS+=@EVAL_BEGIN@@ICUCONFIG@ --ldflags-searchpath@EVAL_END@
+LDFLAGS+=@EVAL_BEGIN@@ICUCONFIG@ --ldflags@EVAL_END@
+
+@IFNEMPTY@USECHASEN@EFI@
+CFLAGS+='-DUSE_CHASEN=1'
+CFLAGS+=@EVAL_BEGIN@@CHASENCONFIG@ --cflags@EVAL_END@
+LDFLAGS+=@EVAL_BEGIN@@CHASENCONFIG@ --libs@EVAL_END@
+CHAUTIL=chasenutil.o
+@ENDIF@
+
+@IFNEMPTY@USESNOWBALL@EFI@
+CFLAGS+='-DUSE_SNOWBALL=1'
+CFLAGS+=-I@SNOWBALLDIR@/include
+SLIBS+=-lstemmer
+LDFLAGS+=-L@SNOWBALLDIR@/lib
+SNOWBALLUTIL=snowballutil.o
+@ENDIF@
+
+@IFNEMPTY@USEMECAB@EFI@
+CFLAGS+='-DUSE_MECAB=1'
+CFLAGS+='-DMECABKIHONINDEX=@MECABKIHONINDEX@'
+CFLAGS+=@EVAL_BEGIN@@MECABCONFIG@ --cflags@EVAL_END@
+LDFLAGS+=@EVAL_BEGIN@@MECABCONFIG@ --libs@EVAL_END@
+MECABUTIL=mecabutil.o
+@ENDIF@
+
+@IFNEMPTY@USENSTMS@EFI@
+CFLAGS+='-DUSE_NSTMS=1'
+CFLAGS+=-I@NSTMSDIR@/include
+CFLAGS+='-DNSTMSXDIR="@NSTMSXDIR@"'
+CFLAGS+='-DNSTMSXBASE="@NSTMSXBASE@"'
+SLIBS+=-lnstms
+LDFLAGS+=-L@NSTMSDIR@/lib
+NSTMSUTIL=nstmsutil.o
+@ENDIF@
+
+@IFNEMPTY@USEEXTS@EFI@
+CFLAGS+='-DUSE_EXTS=1'
+#SLIBS+=-lpthread
+#EXTSUTIL=extsutil.o
+EXTSUTIL=extsutil_sel.o chelate.o
+EXTSDBG=extsdbg
+@ENDIF@
+
+@IFNEMPTY@USEPOSTAG@EFI@
+CFLAGS+='-DUSE_POSTAG=1'
+CFLAGS+=-I@POSTAGDIR@/include
+CFLAGS+='-DINFDIR="@POSTAGSTEMINFDIR@/"'
+SLIBS+=-lpostag
+LDFLAGS+=-L@POSTAGDIR@/lib
+POSTAGUTIL=postag_stem.o postagutil.o
+@ENDIF@
+
+@IFNEMPTY@KILL3NUMBER@EFI@
+CFLAGS+=-DKILL3NUMBER=1
+@ENDIF@
+
+#@IFNEMPTY@UNIDIC@EFI@
+#CFLAGS+=-DENABLE_UNIDIC=1
+#@ENDIF@
+
+@IFNEMPTY@ENABLE_MECAB_OPTS@EFI@
+CFLAGS+=-DENABLE_MECAB_OPTS=1
+@ENDIF@
+
+all: libystem.a stmd $(EXTSDBG)
+
+STMDOBJ=stmd.o stmc.o sigflg.o nio.o
+
+stmd: $(STMDOBJ) libystem.a
+	$(LINK) -o $@ $(STMDOBJ) -L. $(LDFLAGS) -lystem $(SLIBS) -lexpat $(LIBS)
+
+libystem.a: ystem.o normalizer.o ngram.o $(CHAUTIL) $(SNOWBALLUTIL) $(MECABUTIL) $(NSTMSUTIL) $(EXTSUTIL) $(POSTAGUTIL) jutil.o mapline.o
+	-rm -f $@
+	$(AR) q $@ @ALLSRC@
+	$(RANLIB) $@
+
+@IFNEMPTY@USEEXTS@EFI@
+#extsdbg: extsdbg.o
+extsdbg: extsdbg.o chelate.o
+	$(LINK) -o $@ @ALLSRC@ $(LDFLAGS)
+#	$(LINK) -o $@ @ALLSRC@ -lpthread $(LDFLAGS)
+#extsdbg.o: extsutil.c
+extsdbg.o: extsutil_sel.c
+	$(CC) $(CFLAGS) -DSTANDALONE -c -o $@ @ALLSRC@
+@ENDIF@
+
+clean:
+	rm -f *.o *.a *.core stmd $(EXTSDBG)
+
+distclean: clean
+	rm -f config.h config.mk libtool
+	rm -f Makefile stmd-exts.sh
+	rm -f rc.d/jp.ac.nii.cs.getassoc.stmd.plist rc.d/stmd rc.d/stmd-sl
+
+install:
+	$(INSTALL) -c -m 755 -s stmd $(bindir)
+	$(INSTALL) -c -m 755 -s stmd $(bindir)/in.stmd
+	$(INSTALL) -c -m 755 -s stmd $(bindir)/stmd.cgi
+@IFNEMPTY@USEEXTS@EFI@
+	$(INSTALL) -c -m 755 stmd-exts.sh $(bindir)
+@ENDIF@
+	$(INSTALL) -c -m 644 ystem.h $(includedir)
+	if [ -d $(RCDDIR) ]; then $(INSTALL) -c -m 755 rc.d/stmd $(RCDDIR)/stmd; fi

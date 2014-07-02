@@ -1,0 +1,19 @@
+Makefile: rpm 対策
+起動時引数に、'-e user'を渡すと'user'にsetuidするようになった。
+mecab: mecab_new に引数を渡せるようになった。ただし、mecab_newを毎回呼ぶので性能は非常に悪い。やむを得ない場合のみ使用されたい。
+	configureに、 --enable-mecabopts=yes を渡すと有効になる。
+	mecab_new の引数の既定値は "mecab" "--unk-feature" "未知語" である
+	mecab の後ろに , (コンマ)で区切った文字列を渡すと既定値の後ろに追加される (shell による解釈はされない)
+
+ngramが1回しか呼び出せない問題を修正、最大グラム数を4から6に変更
+mecab+unidicでの潜在的バグ修正
+-- 1.1.2
+cgi-bin に rypte="cdata" を追加
+
+--with-mecab-kihon-index を新設
+	unidic-1.3.11 のときに --with-mecab-kihon-index=9
+	unidic-1.3.12 のときに --with-mecab-kihon-index=12
+	とする. default: 6
+--enable-unidic を廃止
+
+-- 1.0

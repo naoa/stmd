@@ -1,0 +1,22 @@
+#! /bin/sh
+
+URL=http://localhost/stmd/
+
+POST_FILE=--post-file=tst2.xml
+
+QUIET=""
+QUIET="--quiet"
+
+SAVE_HEADERS=""
+SAVE_HEADERS="--save-headers"
+
+AUTH="--http-user=xxx --http-passwd=yyy"
+AUTH=""
+
+CERT="--no-check-certificate"
+CERT=""
+
+OUTPUT_DOCUMENT=
+OUTPUT_DOCUMENT=--output-document=-
+
+exec wget $QUIET $AUTH $CERT $POST_FILE $OUTPUT_DOCUMENT $SAVE_HEADERS $URL

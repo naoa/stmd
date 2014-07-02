@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<text>
+This engine can be directly used to realize associative searching systems, which accept a group of texts as queries, and return highly related texts in the relevance order. The usefulness of this type of associative search has long been recognized because this covers the weakness of ordinary key-word search which sometimes returns no hit and sometimes returns too many hits. But a serious problem of associative search is its very high computational cost, and that has long prevented associative search from prevailing as a standard searching method. 
+</text>

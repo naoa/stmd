@@ -1,0 +1,14 @@
+#! /bin/sh
+
+stmd=../stmd
+
+if [ $# != 1 ]
+then
+	echo "usage: `basename $0` xml" 1>&2
+	exit 1
+fi
+src=$1
+
+cl=`LANG=C wc -c <$src|tr -d '	 '`
+REQUEST_METHOD=POST PATH_INFO=/ CONTENT_LENGTH=$cl $stmd -c<$src
+exit 0

@@ -1,0 +1,273 @@
+dnl test for configure.in
+
+AC_INIT(stmd.c)
+
+AC_CONFIG_HEADER(config.h)
+AC_ARG_PROGRAM
+
+AC_PROG_LIBTOOL
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+dnl AC_PROG_RANLIB
+
+AC_CHECK_LIB(dl, main)
+AC_CHECK_LIB(socket, socket)
+AC_CHECK_FUNCS(daemon)
+
+if test "$(make -v -f nonexistent>/dev/null 2>/dev/null; echo $?)" = "0"; then
+	with_gmake="yes"
+fi
+AC_ARG_WITH(gmake, 
+[  --with-gmake=DIR      Enable make with GNU-make],dnl
+[mk_allsrc='$^'; dnl
+mk_ifnempty='ifneq ($('; dnl
+mk_ifempty='ifeq ($('; dnl
+mk_efi='),)'; dnl
+mk_ifexists='ifneq ($(strip $(shell ls '; dnl
+mk_xfi=')),)'; dnl
+mk_else='else'; dnl
+mk_endif='endif'; dnl
+mk_eval='$(shell '; dnl
+mk_eval_end=')'; dnl
+], dnl
+[mk_allsrc='$>'; dnl
+mk_ifnempty='.if ! empty('; dnl
+mk_ifempty='.if empty('; dnl
+mk_efi=')'; dnl
+mk_xfi=')'; dnl
+mk_ifexists='.if exists('; dnl
+mk_else='.else'; dnl
+mk_endif='.endif'; dnl
+mk_eval='`'; dnl
+mk_eval_end='`'; dnl
+])
+
+AC_ARG_WITH(defaultstemmer, 
+[  --with-defaultstemmer=stemmer   default stemmer],
+[defaultstemmer=$withval], [defaultstemmer=])
+
+AC_ARG_WITH(icu-config, 
+[  --with-icu-config=PATH       set icu-config location search path],
+[icuconfig=$withval], [icuconfig="/usr/local/bin/icu-config"])
+
+ansi_source=
+if $icuconfig --cflags | grep ansi; then
+	ansi_source=yes
+fi
+
+chasen='no'
+AC_ARG_ENABLE(chasen,
+[  --enable-chasen        use ChaSen [default no]])
+if test "$enable_chasen" = "yes"; then
+	chasen='yes'
+fi
+
+AC_ARG_WITH(chasen-config, 
+[  --with-chasen-config=PATH       set chasen-config location search path],
+[chasenconfig=$withval], [chasenconfig="/usr/local/bin/chasen-config"])
+
+snowball='no'
+AC_ARG_ENABLE(snowball,
+[  --enable-snowball        use Snowball [default no]])
+if test "$enable_snowball" = "yes"; then
+	snowball='yes'
+fi
+
+AC_ARG_WITH(snowballdir, 
+[  --with-snowballdir=DIR       Snowball directory],
+[snowballdir=$withval], [snowballdir="/usr/local"])
+
+mecab='no'
+AC_ARG_ENABLE(mecab,
+[  --enable-mecab        use MeCab [default no]])
+if test "$enable_mecab" = "yes"; then
+	mecab='yes'
+fi
+
+AC_ARG_WITH(mecab-config, 
+[  --with-mecab-config=PATH       set mecab-config location search path],
+[mecabconfig=$withval], [mecabconfig="/usr/local/bin/mecab-config"])
+
+AC_ARG_WITH(mecab-kihon-index, 
+[  --with-mecab-kihon-index=index       Index of Kihon-kei],
+[mecabkihonindex=$withval], [mecabkihonindex=6])
+
+nstms='no'
+AC_ARG_ENABLE(nstms,
+[  --enable-nstms        use NSTMS [default no]])
+if test "$enable_nstms" = "yes"; then
+	nstms='yes'
+fi
+
+AC_ARG_WITH(nstmsdir, 
+[  --with-nstmsdir=DIR       NSTMS directory],
+[nstmsdir=$withval], [nstmsdir=])
+
+AC_ARG_WITH(nstmsxdir, 
+[  --with-nstmsxdir=DIR       NSTMS x-directory],
+[nstmsxdir=$withval], [nstmsxdir=])
+
+AC_ARG_WITH(nstmsxbase, 
+[  --with-nstmsxbase=DIR       NSTMS x-basename],
+[nstmsxbase=$withval], [nstmsxbase=])
+
+exts='no'
+AC_ARG_ENABLE(exts,
+[  --enable-exts        use EXTS [default no]])
+if test "$enable_exts" = "yes"; then
+	exts='yes'
+fi
+
+postag='no'
+AC_ARG_ENABLE(postag,
+[  --enable-postag        use PosTag [default no]])
+if test "$enable_postag" = "yes"; then
+	postag='yes'
+fi
+
+AC_ARG_WITH(postagdir, 
+[  --with-postagdir=DIR       PosTag directory],
+[postagdir=$withval], [postagdir=])
+
+AC_ARG_WITH(postagsteminfdir, 
+[  --with-postagsteminfdir=DIR       PosTag-STEMMER's inf-file directory],
+[postagsteminfdir=$withval], [postagsteminfdir=])
+
+kill3number='no'
+AC_ARG_ENABLE(kill3number,
+[  --enable-kill3number        do not output number which digits is less than or less equal to 3 [default no]])
+if test "$enable_kill3number" = "yes"; then
+	kill3number='yes'
+fi
+
+mecabopts='no'
+AC_ARG_ENABLE(mecabopts,
+[  --enable-mecabopts        enable mecab runtime options [default no]])
+if test "$enable_mecabopts" = "yes"; then
+	mecabopts='yes'
+fi
+
+if test "$mecabopts" = "no"; then
+	mecabopts=""
+fi
+
+AC_SUBST(DEFAULT_STEMMER)dnl
+DEFAULT_STEMMER=$default_stemmer
+
+AC_SUBST(ALLSRC)dnl
+ALLSRC=$mk_allsrc
+AC_SUBST(IFNEMPTY)dnl
+IFNEMPTY=$mk_ifnempty
+AC_SUBST(IFEMPTY)dnl
+IFEMPTY=$mk_ifempty
+AC_SUBST(EFI)dnl
+EFI=$mk_efi
+AC_SUBST(IFEXISTS)dnl
+IFEXISTS=$mk_ifexists
+AC_SUBST(XFI)dnl
+XFI=$mk_xfi
+AC_SUBST(ELSE)dnl
+ELSE=$mk_else
+AC_SUBST(ENDIF)dnl
+ENDIF=$mk_endif
+AC_SUBST(EVAL_BEGIN)dnl
+EVAL_BEGIN=$mk_eval
+AC_SUBST(EVAL_END)dnl
+EVAL_END=$mk_eval_end
+
+AC_SUBST(DEFAULTSTEMMER)dnl
+DEFAULTSTEMMER=$defaultstemmer
+
+if test "$kill3number" = "no"; then
+	kill3number=""
+fi
+
+AC_SUBST(KILL3NUMBER)
+KILL3NUMBER=$kill3number
+
+AC_SUBST(ANSI_SOURCE)
+ANSI_SOURCE=$ansi_source
+
+AC_SUBST(MECABKIHONINDEX)
+MECABKIHONINDEX=$mecabkihonindex
+
+if test "$chasen" = "no"; then
+	chasen=""
+fi
+
+AC_SUBST(ICUCONFIG)dnl
+ICUCONFIG=$icuconfig
+
+AC_SUBST(USECHASEN)
+USECHASEN=$chasen
+
+AC_SUBST(CHASENCONFIG)dnl
+CHASENCONFIG=$chasenconfig
+
+if test "$snowball" = "no"; then
+	snowball=""
+fi
+
+AC_SUBST(USESNOWBALL)
+USESNOWBALL=$snowball
+
+AC_SUBST(SNOWBALLDIR)dnl
+SNOWBALLDIR=$snowballdir
+
+if test "$mecab" = "no"; then
+	mecab=""
+fi
+
+AC_SUBST(USEMECAB)
+USEMECAB=$mecab
+
+AC_SUBST(MECABCONFIG)dnl
+MECABCONFIG=$mecabconfig
+
+if test "$nstms" = "no"; then
+	nstms=""
+fi
+
+AC_SUBST(USENSTMS)
+USENSTMS=$nstms
+
+AC_SUBST(NSTMSDIR)dnl
+NSTMSDIR=$nstmsdir
+
+AC_SUBST(NSTMSXDIR)dnl
+NSTMSXDIR=$nstmsxdir
+
+AC_SUBST(NSTMSXBASE)dnl
+NSTMSXBASE=$nstmsxbase
+
+if test "$exts" = "no"; then
+	exts=""
+fi
+
+AC_SUBST(USEEXTS)
+USEEXTS=$exts
+
+if test "$postag" = "no"; then
+	postag=""
+fi
+
+AC_SUBST(USEPOSTAG)
+USEPOSTAG=$postag
+
+AC_SUBST(POSTAGDIR)dnl
+POSTAGDIR=$postagdir
+
+AC_SUBST(POSTAGSTEMINFDIR)dnl
+POSTAGSTEMINFDIR=$postagsteminfdir
+
+AC_SUBST(ENABLE_MECAB_OPTS)
+ENABLE_MECAB_OPTS=$mecabopts
+
+AC_OUTPUT(Makefile
+	config.mk
+	stmd-exts.sh
+	rc.d/jp.ac.nii.cs.getassoc.stmd.plist
+	rc.d/stmd-sl
+	rc.d/stmd)

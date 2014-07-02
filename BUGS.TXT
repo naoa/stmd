@@ -1,0 +1,2 @@
+Postag module is broken
+On WIN32 environment, stmd is slow.

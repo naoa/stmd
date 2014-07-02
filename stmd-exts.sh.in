@@ -1,0 +1,3 @@
+#! /bin/sh
+mecab=`@MECABCONFIG@ --exec-prefix`/bin/mecab
+exec $mecab '--node-format=%m\n' "$@"
